@@ -24,6 +24,11 @@ import android.app.ListActivity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -31,6 +36,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.ParcelUuid;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -44,15 +50,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * Activity for scanning and displaying available Bluetooth LE devices.
  */
+@TargetApi(23)
 public class DeviceScanActivity extends ListActivity {
 
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private BluetoothAdapter mBluetoothAdapter;
+    private BluetoothLeScanner mLEScanner;
     private boolean mScanning;
     private Handler mHandler;
 
@@ -63,7 +72,7 @@ public class DeviceScanActivity extends ListActivity {
     //This is required for Android 6.0 (Marshmallow)
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
 
-    @TargetApi(23)
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,7 +99,7 @@ public class DeviceScanActivity extends ListActivity {
             return;
         }
 
-        //This section required for Android 6.0 (Marshmallow)
+        //This section required for Android 6.0 (Marshmallow) permissions
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             // Android M Permission check 
             if (this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -109,7 +118,7 @@ public class DeviceScanActivity extends ListActivity {
 
     }
 
-    //This method required for Android 6.0 (Marshmallow)
+    //This method required for Android 6.0 (Marshmallow) permissions
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
         switch (requestCode) {
@@ -173,7 +182,6 @@ public class DeviceScanActivity extends ListActivity {
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
 
         }
-
         // Initializes list view adapter and start scanning.
         mLeDeviceListAdapter = new LeDeviceListAdapter();
         setListAdapter(mLeDeviceListAdapter);
@@ -205,35 +213,68 @@ public class DeviceScanActivity extends ListActivity {
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, device.getName());
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
         if (mScanning) {
-            mBluetoothAdapter.stopLeScan(mLeScanCallback);
-            mScanning = false;
+            scanLeDevice(false);
         }
         startActivity(intent);
     }
 
+    /**
+     * Start or stop BLE scanning
+     *
+     * @param enable start scanning if true
+     */
     private void scanLeDevice(final boolean enable) {
-        if (enable) {
+        if (enable) { // enable set to start scanning
             // Stops scanning after a pre-defined scan period.
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    mScanning = false;
-                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
-                    invalidateOptionsMenu();
+                    if(mScanning) {
+                        mScanning = false;
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                            mBluetoothAdapter.stopLeScan(mLeScanCallback);
+                        } else {
+                            mLEScanner.stopScan(mScanCallback);
+                        }
+                        invalidateOptionsMenu();
+                    }
                 }
             }, SCAN_PERIOD);
 
             mScanning = true;
             UUID[] motorServiceArray = {BleCar.getMotorServiceUUID()};
-            mBluetoothAdapter.startLeScan(motorServiceArray, mLeScanCallback);
-        } else {
-            mScanning = false;
-            mBluetoothAdapter.stopLeScan(mLeScanCallback);
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                mBluetoothAdapter.startLeScan(motorServiceArray, mLeScanCallback);
+            } else { // New BLE scanning introduced in LOLLIPOP
+                ScanSettings settings;
+                List<ScanFilter> filters;
+                mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
+                settings = new ScanSettings.Builder()
+                        .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                        .build();
+                filters = new ArrayList<>();
+                // We will scan just for the CAR's UUID
+                ParcelUuid PUuid = new ParcelUuid(BleCar.getMotorServiceUUID());
+                ScanFilter filter = new ScanFilter.Builder().setServiceUuid(PUuid).build();
+                filters.add(filter);
+                mLEScanner.startScan(filters, settings, mScanCallback);
+            }
+        } else { // enable set to stop scanning
+            if(mScanning) {
+                mScanning = false;
+                if (Build.VERSION.SDK_INT < 21) {
+                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
+                } else {
+                    mLEScanner.stopScan(mScanCallback);
+                }
+            }
         }
         invalidateOptionsMenu();
     }
 
-    // Adapter for holding devices found through scanning.
+    /**
+     * This class is used to list BLE devices that are found
+     */
     private class LeDeviceListAdapter extends BaseAdapter {
         private ArrayList<BluetoothDevice> mLeDevices;
         private LayoutInflater mInflator;
@@ -245,7 +286,7 @@ public class DeviceScanActivity extends ListActivity {
         }
 
         public void addDevice(BluetoothDevice device) {
-            if(!mLeDevices.contains(device)) {
+            if (!mLeDevices.contains(device)) {
                 mLeDevices.add(device);
             }
         }
@@ -299,9 +340,10 @@ public class DeviceScanActivity extends ListActivity {
         }
     }
 
-    // Device scan callback.
-    private BluetoothAdapter.LeScanCallback mLeScanCallback =
-            new BluetoothAdapter.LeScanCallback() {
+    /**
+     * This is the callback for BLE scanning on versions prior to LOLLIPOP
+     */
+    private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
 
         @Override
         public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
@@ -315,6 +357,20 @@ public class DeviceScanActivity extends ListActivity {
         }
     };
 
+    /**
+     * This is the callback for BLE scanning for LOLLIPOP and later
+     */
+    private ScanCallback mScanCallback = new ScanCallback() {
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            mLeDeviceListAdapter.addDevice(result.getDevice());
+            mLeDeviceListAdapter.notifyDataSetChanged();
+        }
+    };
+
+    /**
+     * This class holds the device name and device address for the list of BLE devices found.
+     */
     static class ViewHolder {
         TextView deviceName;
         TextView deviceAddress;
