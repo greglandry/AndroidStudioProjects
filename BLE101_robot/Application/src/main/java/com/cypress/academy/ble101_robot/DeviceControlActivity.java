@@ -17,8 +17,6 @@
 package com.cypress.academy.ble101_robot;
 
 import android.app.Activity;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattService;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -34,8 +32,6 @@ import android.widget.CompoundButton;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * This Activity provides the user interface to control the robot.  The Activity
@@ -43,12 +39,6 @@ import java.util.UUID;
  * Bluetooth LE API.
  */
 public class DeviceControlActivity extends Activity {
-
-    // State (on/off) and speed of the motors
-    private boolean motorLeftState = false;
-    private boolean motorRightState = false;
-    private int motorLeftSpeed = 0;
-    private int motorRightSpeed = 0;
 
     // Objects to access the layout items for Tach, Buttons, and Seek bars
     private TextView mTachLeftText;
@@ -66,7 +56,7 @@ public class DeviceControlActivity extends Activity {
 
     private String mDeviceName;
     private String mDeviceAddress;
-    private BluetoothLeService mBluetoothLeService;
+    private BleCar mBleCar;
     private boolean mConnected = false;
 
     /**
@@ -78,62 +68,45 @@ public class DeviceControlActivity extends Activity {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder service) {
             Log.i(TAG, "onServiceConnected");
-            mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
-            if (!mBluetoothLeService.initialize()) {
+            mBleCar = ((BleCar.LocalBinder) service).getService();
+            if (!mBleCar.initialize()) {
                 Log.e(TAG, "Unable to initialize Bluetooth");
                 finish();
             }
-            // Automatically connects to the GATT database upon successful start-up initialization.
-            mBluetoothLeService.connect(mDeviceAddress);
+            // Automatically connects to the car database upon successful start-up initialization.
+            mBleCar.connect(mDeviceAddress);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
-            mBluetoothLeService = null;
+            mBleCar = null;
         }
     };
 
     /**
-     * Handle broadcasts from the BLE service. The events are:
-     * ACTION_GATT_CONNECTED: connected to a GATT server.
-     * ACTION_GATT_DISCONNECTED: disconnected from a GATT server.
-     * ACTION_GATT_SERVICES_DISCOVERED: discovered GATT services.
-     * ACTION_DATA_AVAILABLE: received data from the device.  This can be a result of write, read
-     * or notification operations.
+     * Handle broadcasts from the Car service object. The events are:
+     * ACTION_CONNECTED: connected to the car.
+     * ACTION_DISCONNECTED: disconnected from the car.
+     * ACTION_DATA_AVAILABLE: received data from the car.  This can be a result of a read
+     * or notify operation.
      */
-    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver mCarUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
             switch (action) {
-                case BluetoothLeService.ACTION_GATT_CONNECTED:
+                case BleCar.ACTION_CONNECTED:
                     mConnected = true;
                     invalidateOptionsMenu();
                     break;
-                case BluetoothLeService.ACTION_GATT_DISCONNECTED:
+                case BleCar.ACTION_DISCONNECTED:
                     mConnected = false;
                     invalidateOptionsMenu();
                     break;
-                case BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED:
-                    // Find the motor service and get the characteristics for it
-                    mBluetoothLeService.getMotorCharacteristics(mBluetoothLeService.getSupportedGattServices());
-                    // Set the CCCD to notify us for the two tach readings
-                    mBluetoothLeService.setCharacteristicNotification(mBluetoothLeService.mTachLeftCharacteristic, true);
-                    mBluetoothLeService.setCharacteristicNotification(mBluetoothLeService.mTachRightCharacteristic, true);
-                    break;
-                case BluetoothLeService.ACTION_DATA_AVAILABLE:
-                    // This is called after a Read or Notify completes
-                    final String[] dataString = intent.getStringArrayExtra(BluetoothLeService.EXTRA_DATA);
-                    switch (dataString[0]) {
-                        case BluetoothLeService.tachLeftCharUUID:
-                            // Set the left tach value on the screen
-                            mTachLeftText.setText(dataString[1]);
-                            break;
-                        case BluetoothLeService.tachRightCharUUID:
-                            // Set the right tach value on the screen
-                            mTachRightText.setText(dataString[1]);
-                            break;
-                    }
+                case BleCar.ACTION_DATA_AVAILABLE:
+                    // This is called after a Notify completes
+                    mTachLeftText.setText(String.format("%d", mBleCar.getTach(BleCar.LEFT)));
+                    mTachRightText.setText(String.format("%d", mBleCar.getTach(BleCar.RIGHT)));
                     break;
             }
         }
@@ -145,12 +118,11 @@ public class DeviceControlActivity extends Activity {
      *
      * @return intentFilter
      */
-    private static IntentFilter makeGattUpdateIntentFilter() {
+    private static IntentFilter makeCarUpdateIntentFilter() {
         final IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        intentFilter.addAction(BleCar.ACTION_CONNECTED);
+        intentFilter.addAction(BleCar.ACTION_DISCONNECTED);
+        intentFilter.addAction(BleCar.ACTION_DATA_AVAILABLE);
         return intentFilter;
     }
 
@@ -176,27 +148,20 @@ public class DeviceControlActivity extends Activity {
 
         // Bind to the BLE service
         Log.i(TAG, "Binding Service");
-        Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
-        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+        Intent carServiceIntent = new Intent(this, BleCar.class);
+        bindService(carServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
 
         /* This will be called when the left motor enable switch is changed */
         mEnableLeftSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                int speed;
                 if (buttonView.isChecked()) {
-                    motorLeftState = true;
-                    speed = motorLeftSpeed;
+                    mBleCar.setMotorState(BleCar.LEFT,true);
                     Log.d(TAG, "Left Motor On");
                 } else {
-                    motorLeftState = false;
-                    speed = 0;
-                    mSpeedLeftSeekBar.setProgress(10); /* Move slider to middle position */
+                    mBleCar.setMotorState(BleCar.LEFT,false);
+                    mBleCar.setMotorSpeed(BleCar.LEFT,0); // Force motor off
+                    mSpeedLeftSeekBar.setProgress(10); // Move slider to middle position
                     Log.d(TAG, "Left Motor Off");
-                }
-                /* Set the characteristic value locally and then write to the device */
-                if (mBluetoothLeService.mSpeedLeftCharacteristic != null) {
-                    mBluetoothLeService.mSpeedLeftCharacteristic.setValue(speed, BluetoothGattCharacteristic.FORMAT_SINT8, 0);
-                    mBluetoothLeService.writeCharacteristic(mBluetoothLeService.mSpeedLeftCharacteristic);
                 }
             }
         });
@@ -204,21 +169,14 @@ public class DeviceControlActivity extends Activity {
         /* This will be called when the right motor enable switch is changed */
         mEnableRightSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                int speed;
                 if (buttonView.isChecked()) {
-                    motorRightState = true;
-                    speed = motorRightSpeed;
+                    mBleCar.setMotorState(BleCar.RIGHT,true);
                     Log.d(TAG, "Right Motor On");
                 } else {
-                    motorRightState = false;
-                    speed = 0; /* If thw switch is off, force speed to 0 */
-                    mSpeedRightSeekBar.setProgress(10); /* Move slider to middle position */
+                    mBleCar.setMotorState(BleCar.RIGHT,false);
+                    mBleCar.setMotorSpeed(BleCar.RIGHT, 0); // Force motor off
+                    mSpeedRightSeekBar.setProgress(10); // Move slider to middle position
                     Log.d(TAG, "Right Motor Off");
-                }
-                /* Set the characteristic value locally and then write to the device */
-                if (mBluetoothLeService.mSpeedRightCharacteristic != null) {
-                    mBluetoothLeService.mSpeedRightCharacteristic.setValue(speed, BluetoothGattCharacteristic.FORMAT_SINT8, 0);
-                    mBluetoothLeService.writeCharacteristic(mBluetoothLeService.mSpeedRightCharacteristic);
                 }
             }
         });
@@ -232,23 +190,14 @@ public class DeviceControlActivity extends Activity {
             }
 
             public void onProgressChanged(SeekBar seekBar, int speed, boolean fromUser) {
-                /* The seek bar is 0 to 20 but we need -100 to 100 for the PSoC FW */
-                speed = (speed * 10) - 100;
+                /* Scale the speed from what the seek bar provides to what the PSoC FW expects */
+                speed = scaleSpeed(speed);
+                mBleCar.setMotorSpeed(BleCar.LEFT, speed);
                 Log.d(TAG, "Left Speed Change to:" + speed);
-                motorLeftSpeed = speed;
-                /* If the switch is off, force speed to 0 */
-                if (!motorLeftState) {
-                    speed = 0;
-                }
-                /* Set the characteristic value locally and then write to the device */
-                if (mBluetoothLeService.mSpeedLeftCharacteristic != null) {
-                    mBluetoothLeService.mSpeedLeftCharacteristic.setValue(speed, BluetoothGattCharacteristic.FORMAT_SINT8, 0);
-                    mBluetoothLeService.writeCharacteristic(mBluetoothLeService.mSpeedLeftCharacteristic);
-                }
             }
         });
 
-        /* This will be called when the left speed seekbar is moved */
+        /* This will be called when the right speed seekbar is moved */
         mSpeedRightSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             public void onStartTrackingTouch(SeekBar seekBar) {
             }
@@ -257,29 +206,20 @@ public class DeviceControlActivity extends Activity {
             }
 
             public void onProgressChanged(SeekBar seekBar, int speed, boolean fromUser) {
-                /* The seek bar is 0 to 20 but we need -100 to 100 for the PSoC FW */
-                speed = (speed * 10) - 100;
-                motorRightSpeed = speed;
+                /* Scale the speed from what the seek bar provides to what the PSoC FW expects */
+                speed = scaleSpeed(speed);
+                mBleCar.setMotorSpeed(BleCar.RIGHT, speed);
                 Log.d(TAG, "Right Speed Change to:" + speed);
-                /* If thw switch is off, force speed to 0 */
-                if (!motorRightState) {
-                    speed = 0;
-                }
-                /* Set the characteristic value locally and then write to the device */
-                if (mBluetoothLeService.mSpeedRightCharacteristic != null) {
-                    mBluetoothLeService.mSpeedRightCharacteristic.setValue(speed, BluetoothGattCharacteristic.FORMAT_SINT8, 0);
-                    mBluetoothLeService.writeCharacteristic(mBluetoothLeService.mSpeedRightCharacteristic);
-                }
-            }
+             }
         });
     } /* End of onCreate method */
 
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
-        if (mBluetoothLeService != null) {
-            final boolean result = mBluetoothLeService.connect(mDeviceAddress);
+        registerReceiver(mCarUpdateReceiver, makeCarUpdateIntentFilter());
+        if (mBleCar != null) {
+            final boolean result = mBleCar.connect(mDeviceAddress);
             Log.i(TAG, "Connect request result=" + result);
         }
     }
@@ -287,14 +227,14 @@ public class DeviceControlActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(mGattUpdateReceiver);
+        unregisterReceiver(mCarUpdateReceiver);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         unbindService(mServiceConnection);
-        mBluetoothLeService = null;
+        mBleCar = null;
     }
 
     @Override
@@ -314,15 +254,29 @@ public class DeviceControlActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_connect:
-                mBluetoothLeService.connect(mDeviceAddress);
+                mBleCar.connect(mDeviceAddress);
                 return true;
             case R.id.menu_disconnect:
-                mBluetoothLeService.disconnect();
+                mBleCar.disconnect();
                 return true;
             case android.R.id.home:
                 onBackPressed();
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * Scale the speed read from the slider (0 to 20) to
+     * what the car object expects (-100 to +100).
+     *
+     * @param speed Input speed from the slider
+     * @return scaled value of the speed
+     */
+    private int scaleSpeed(int speed) {
+        final int SCALE = 10;
+        final int OFFSET = 100;
+
+        return ((speed * SCALE) - OFFSET);
     }
  }

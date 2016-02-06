@@ -63,10 +63,10 @@ activity#com.cypress.academy.ble101_robot.DeviceControlActivity
 ADDED from AndroidManifest.xml:48:9
 	android:name
 		ADDED from AndroidManifest.xml:48:19
-service#com.cypress.academy.ble101_robot.BluetoothLeService
+service#com.cypress.academy.ble101_robot.BleCar
 ADDED from AndroidManifest.xml:49:9
 	android:enabled
-		ADDED from AndroidManifest.xml:49:53
+		ADDED from AndroidManifest.xml:49:41
 	android:name
 		ADDED from AndroidManifest.xml:49:18
 uses-sdk

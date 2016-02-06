@@ -174,7 +174,7 @@ public class DeviceScanActivity extends ListActivity {
 
         }
 
-        // Initializes list view adapter.
+        // Initializes list view adapter and start scanning.
         mLeDeviceListAdapter = new LeDeviceListAdapter();
         setListAdapter(mLeDeviceListAdapter);
         scanLeDevice(true);
@@ -224,7 +224,7 @@ public class DeviceScanActivity extends ListActivity {
             }, SCAN_PERIOD);
 
             mScanning = true;
-            UUID[] motorServiceArray = {UUID.fromString(BluetoothLeService.motorServiceUUID)};
+            UUID[] motorServiceArray = {BleCar.getMotorServiceUUID()};
             mBluetoothAdapter.startLeScan(motorServiceArray, mLeScanCallback);
         } else {
             mScanning = false;
