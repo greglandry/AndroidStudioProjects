@@ -42,8 +42,8 @@ public class BleCar extends Service {
 
     private final static String TAG = BleCar.class.getSimpleName();
 
-    public final static boolean LEFT =  true;
-    public final static boolean RIGHT = false;
+    public final static boolean MOTOR_LEFT =  true;
+    public final static boolean MOTOR_RIGHT = false;
 
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
@@ -362,7 +362,7 @@ public class BleCar extends Service {
      */
     private void updateGattSpeed(Boolean Motor, boolean state)
     {
-        if(Motor == LEFT) {
+        if(Motor == MOTOR_LEFT) {
             if (mSpeedLeftCharacteristic != null) {
                 if(state) {
                     mSpeedLeftCharacteristic.setValue(motorLeftSpeed, BluetoothGattCharacteristic.FORMAT_SINT8, 0);
@@ -445,7 +445,7 @@ public class BleCar extends Service {
      */
     public void setMotorState(boolean Motor, boolean state) {
         // Update the motor state variable
-        if(Motor == LEFT)
+        if(Motor == MOTOR_LEFT)
         {
             motorLeftState = state;
         } else { // Motor == RIGHT
@@ -466,7 +466,7 @@ public class BleCar extends Service {
      */
     public void setMotorSpeed(boolean Motor, int speed) {
         boolean state = false;
-        if(Motor == LEFT)
+        if(Motor == MOTOR_LEFT)
         {
             motorLeftSpeed = speed;
             state = motorLeftState;
@@ -485,7 +485,7 @@ public class BleCar extends Service {
      * @return tach value
      */
     public int getTach(boolean Motor) {
-        if (Motor == LEFT) {
+        if (Motor == MOTOR_LEFT) {
             return motorLeftTach;
         } else { // Motor == RIGHT
             return motorRightTach;

@@ -105,8 +105,8 @@ public class DeviceControlActivity extends Activity {
                     break;
                 case BleCar.ACTION_DATA_AVAILABLE:
                     // This is called after a Notify completes
-                    mTachLeftText.setText(String.format("%d", mBleCar.getTach(BleCar.LEFT)));
-                    mTachRightText.setText(String.format("%d", mBleCar.getTach(BleCar.RIGHT)));
+                    mTachLeftText.setText(String.format("%d", mBleCar.getTach(BleCar.MOTOR_LEFT)));
+                    mTachRightText.setText(String.format("%d", mBleCar.getTach(BleCar.MOTOR_RIGHT)));
                     break;
             }
         }
@@ -154,30 +154,14 @@ public class DeviceControlActivity extends Activity {
         /* This will be called when the left motor enable switch is changed */
         mEnableLeftSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (buttonView.isChecked()) {
-                    mBleCar.setMotorState(BleCar.LEFT,true);
-                    Log.d(TAG, "Left Motor On");
-                } else {
-                    mBleCar.setMotorState(BleCar.LEFT,false);
-                    mBleCar.setMotorSpeed(BleCar.LEFT,0); // Force motor off
-                    mSpeedLeftSeekBar.setProgress(10); // Move slider to middle position
-                    Log.d(TAG, "Left Motor Off");
-                }
+                enableMotorSwitch(isChecked, BleCar.MOTOR_LEFT);
             }
         });
 
         /* This will be called when the right motor enable switch is changed */
         mEnableRightSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (buttonView.isChecked()) {
-                    mBleCar.setMotorState(BleCar.RIGHT,true);
-                    Log.d(TAG, "Right Motor On");
-                } else {
-                    mBleCar.setMotorState(BleCar.RIGHT,false);
-                    mBleCar.setMotorSpeed(BleCar.RIGHT, 0); // Force motor off
-                    mSpeedRightSeekBar.setProgress(10); // Move slider to middle position
-                    Log.d(TAG, "Right Motor Off");
-                }
+                enableMotorSwitch(isChecked, BleCar.MOTOR_RIGHT);
             }
         });
 
@@ -192,7 +176,7 @@ public class DeviceControlActivity extends Activity {
             public void onProgressChanged(SeekBar seekBar, int speed, boolean fromUser) {
                 /* Scale the speed from what the seek bar provides to what the PSoC FW expects */
                 speed = scaleSpeed(speed);
-                mBleCar.setMotorSpeed(BleCar.LEFT, speed);
+                mBleCar.setMotorSpeed(BleCar.MOTOR_LEFT, speed);
                 Log.d(TAG, "Left Speed Change to:" + speed);
             }
         });
@@ -208,7 +192,7 @@ public class DeviceControlActivity extends Activity {
             public void onProgressChanged(SeekBar seekBar, int speed, boolean fromUser) {
                 /* Scale the speed from what the seek bar provides to what the PSoC FW expects */
                 speed = scaleSpeed(speed);
-                mBleCar.setMotorSpeed(BleCar.RIGHT, speed);
+                mBleCar.setMotorSpeed(BleCar.MOTOR_RIGHT, speed);
                 Log.d(TAG, "Right Speed Change to:" + speed);
              }
         });
@@ -278,5 +262,27 @@ public class DeviceControlActivity extends Activity {
         final int OFFSET = 100;
 
         return ((speed * SCALE) - OFFSET);
+    }
+
+    /**
+     * Enable or disable the left/right motor
+     *
+     * @param isChecked used to enable/disable motor
+     * @param motor is the motor to enable/disable (left or right)
+     */
+    private void enableMotorSwitch(boolean isChecked, boolean motor) {
+        if (isChecked) { // Turn on the specified motor
+            mBleCar.setMotorState(motor, true);
+            Log.d(TAG, (motor == BleCar.MOTOR_LEFT ? "Left" : "Right") + " Motor On");
+        } else { // turn off the specified motor
+            mBleCar.setMotorState(motor, false);
+            mBleCar.setMotorSpeed(motor, 0); // Force motor off
+            if(motor == BleCar.MOTOR_LEFT) {
+                mSpeedLeftSeekBar.setProgress(10); // Move slider to middle position
+            } else {
+                mSpeedRightSeekBar.setProgress(10); // Move slider to middle position
+            }
+            Log.d(TAG, (motor == BleCar.MOTOR_LEFT ? "Left" : "Right") + " Motor Off");
+        }
     }
  }
