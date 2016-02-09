@@ -48,28 +48,28 @@ public class BleCar extends Service {
 
     public enum Motor { LEFT, RIGHT }
 
-    private BluetoothManager mBluetoothManager;
-    private BluetoothAdapter mBluetoothAdapter;
-    private String mBluetoothDeviceAddress;
-    private BluetoothGatt mBluetoothGatt;
+    private static BluetoothManager mBluetoothManager;
+    private static BluetoothAdapter mBluetoothAdapter;
+    private static String mBluetoothDeviceAddress;
+    private static BluetoothGatt mBluetoothGatt;
 
     //  Queue for BLE events
     //  This is needed so that rapid BLE events don't get dropped
-    private final Queue<Object> BleQueue = new LinkedList<>();
+    private static final Queue<Object> BleQueue = new LinkedList<>();
 
     /* UUID for the custom motor characteristics */
-    private final static String motorServiceUUID = "00000000-0000-1000-8000-00805f9b34f0";
-    private final static String speedLeftCharUUID = "00000000-0000-1000-8000-00805f9b34f1";
-    private final static String speedRightCharUUID = "00000000-0000-1000-8000-00805f9b34f2";
-    private final static String tachLeftCharUUID = "00000000-0000-1000-8000-00805f9b34f3";
-    private final static String tachRightCharUUID = "00000000-0000-1000-8000-00805f9b34f4";
-    private final static String CCCD_UUID = "00002902-0000-1000-8000-00805f9b34fb";
+    private static final String motorServiceUUID = "00000000-0000-1000-8000-00805f9b34f0";
+    private static final String speedLeftCharUUID = "00000000-0000-1000-8000-00805f9b34f1";
+    private static final String speedRightCharUUID = "00000000-0000-1000-8000-00805f9b34f2";
+    private static final String tachLeftCharUUID = "00000000-0000-1000-8000-00805f9b34f3";
+    private static final String tachRightCharUUID = "00000000-0000-1000-8000-00805f9b34f4";
+    private static final String CCCD_UUID = "00002902-0000-1000-8000-00805f9b34fb";
 
     // Bluetooth Characteristics that we need to read/write
-    private BluetoothGattCharacteristic mSpeedLeftCharacteristic;
-    private BluetoothGattCharacteristic mSpeedRightCharacteristic;
-    private BluetoothGattCharacteristic mTachLeftCharacteristic;
-    private BluetoothGattCharacteristic mTachRightCharacteristic;
+    private static BluetoothGattCharacteristic mSpeedLeftCharacteristic;
+    private static BluetoothGattCharacteristic mSpeedRightCharacteristic;
+    private static BluetoothGattCharacteristic mTachLeftCharacteristic;
+    private static BluetoothGattCharacteristic mTachRightCharacteristic;
 
     // State (on/off), speed of the motors, and tach values
     private static boolean motorLeftState;
@@ -80,16 +80,13 @@ public class BleCar extends Service {
     private static int motorRightTach;
 
     // Actions used during broadcasts to the activity
-    public final static String ACTION_CONNECTED =
+    public static final String ACTION_CONNECTED =
             "com.cypress.academy.ble101_robot.ACTION_GATT_CONNECTED";
-    public final static String ACTION_DISCONNECTED =
+    public static final String ACTION_DISCONNECTED =
             "com.cypress.academy.ble101_robot.ACTION_GATT_DISCONNECTED";
-    public final static String ACTION_DATA_AVAILABLE =
+    public static final String ACTION_DATA_AVAILABLE =
             "com.cypress.academy.ble101_robot.ACTION_DATA_AVAILABLE";
 
-    /******************************************************************************/
-    /* Service Binding */
-    /******************************************************************************/
     /**
      * This is a binder for the BluetoothLeService
      */
@@ -115,9 +112,6 @@ public class BleCar extends Service {
 
     private final IBinder mBinder = new LocalBinder();
 
-    /******************************************************************************/
-    /* GATT database event callbacks */
-    /******************************************************************************/
     /**
      * Implements callback methods for GATT events.
      */
@@ -248,9 +242,6 @@ public class BleCar extends Service {
         }
     };
 
-    /******************************************************************************/
-    /* Broadcast update
-    /******************************************************************************/
 
     /**
      * Sends a broadcast to the listener in the main activity.
@@ -262,11 +253,9 @@ public class BleCar extends Service {
         sendBroadcast(intent);
     }
 
-    /******************************************************************************/
-    /* GATT methods such as connect, disconnect, read, write, etc. */
-    /******************************************************************************/
+
     /**
-     * Initializes a reference to the local Bluetooth adapter.
+     * Initialize a reference to the local Bluetooth adapter.
      *
      * @return Return true if the initialization is successful.
      */
@@ -439,9 +428,7 @@ public class BleCar extends Service {
         }
     }
 
-    /******************************************************************************/
-    /* Other car functions such as turn on/off motors, set motor speed, etc. */
-    /******************************************************************************/
+
     /**
      * Turn a motor on/off
      *
@@ -489,7 +476,7 @@ public class BleCar extends Service {
      * @param motor to operate on
      * @return tach value
      */
-    public int getTach(Motor motor) {
+    public static int getTach(Motor motor) {
         if (motor == Motor.LEFT) {
             return motorLeftTach;
         } else { // Motor == RIGHT

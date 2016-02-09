@@ -45,23 +45,23 @@ import android.widget.TextView;
 public class DeviceControlActivity extends Activity {
 
     // Objects to access the layout items for Tach, Buttons, and Seek bars
-    private TextView mTachLeftText;
-    private TextView mTachRightText;
-    private SeekBar mSpeedLeftSeekBar;
-    private SeekBar mSpeedRightSeekBar;
-    private Switch mEnableLeftSwitch;
-    private Switch mEnableRightSwitch;
+    private static TextView mTachLeftText;
+    private static TextView mTachRightText;
+    private static SeekBar mSpeedLeftSeekBar;
+    private static SeekBar mSpeedRightSeekBar;
+    private static Switch mEnableLeftSwitch;
+    private static Switch mEnableRightSwitch;
 
     // This tag is used for debug messages
-    private final static String TAG = DeviceControlActivity.class.getSimpleName();
+    private static final String TAG = DeviceControlActivity.class.getSimpleName();
 
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
 
-    private String mDeviceName;
-    private String mDeviceAddress;
-    private BleCar mBleCar;
-    private boolean mConnected = false;
+    private static String mDeviceName;
+    private static String mDeviceAddress;
+    private static BleCar mBleCar;
+    private static boolean mConnected = false;
 
     /**
      * This manages the lifecycle of the BLE service.
@@ -109,8 +109,8 @@ public class DeviceControlActivity extends Activity {
                     break;
                 case BleCar.ACTION_DATA_AVAILABLE:
                     // This is called after a Notify completes
-                    mTachLeftText.setText(String.format("%d", mBleCar.getTach(BleCar.Motor.LEFT)));
-                    mTachRightText.setText(String.format("%d", mBleCar.getTach(BleCar.Motor.RIGHT)));
+                    mTachLeftText.setText(String.format("%d", BleCar.getTach(BleCar.Motor.LEFT)));
+                    mTachRightText.setText(String.format("%d", BleCar.getTach(BleCar.Motor.RIGHT)));
                     break;
             }
         }

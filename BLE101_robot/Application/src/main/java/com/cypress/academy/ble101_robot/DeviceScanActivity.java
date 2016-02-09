@@ -63,11 +63,11 @@ import java.util.UUID;
 @TargetApi(23)
 public class DeviceScanActivity extends ListActivity {
 
-    private LeDeviceListAdapter mLeDeviceListAdapter;
-    private BluetoothAdapter mBluetoothAdapter;
-    private BluetoothLeScanner mLEScanner;
-    private boolean mScanning;
-    private Handler mHandler;
+    private static LeDeviceListAdapter mLeDeviceListAdapter;
+    private static BluetoothAdapter mBluetoothAdapter;
+    private static BluetoothLeScanner mLEScanner;
+    private static boolean mScanning;
+    private static Handler mHandler;
 
     private static final int REQUEST_ENABLE_BT = 1;
     // Stops scanning after 10 seconds.
