@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ *
+ * This file was modified by Cypress Semiconductor Corporation in order to
+ * customize it for specific hardware used for training videos.
  */
 
 package com.cypress.academy.ble101_robot;
@@ -232,6 +236,7 @@ public class DeviceScanActivity extends ListActivity {
                     if(mScanning) {
                         mScanning = false;
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                            //noinspection deprecation
                             mBluetoothAdapter.stopLeScan(mLeScanCallback);
                         } else {
                             mLEScanner.stopScan(mScanCallback);
@@ -244,6 +249,7 @@ public class DeviceScanActivity extends ListActivity {
             mScanning = true;
             UUID[] motorServiceArray = {BleCar.getMotorServiceUUID()};
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                //noinspection deprecation
                 mBluetoothAdapter.startLeScan(motorServiceArray, mLeScanCallback);
             } else { // New BLE scanning introduced in LOLLIPOP
                 ScanSettings settings;
@@ -263,6 +269,7 @@ public class DeviceScanActivity extends ListActivity {
             if(mScanning) {
                 mScanning = false;
                 if (Build.VERSION.SDK_INT < 21) {
+                    //noinspection deprecation
                     mBluetoothAdapter.stopLeScan(mLeScanCallback);
                 } else {
                     mLEScanner.stopScan(mScanCallback);
@@ -276,8 +283,8 @@ public class DeviceScanActivity extends ListActivity {
      * This class is used to list BLE devices that are found
      */
     private class LeDeviceListAdapter extends BaseAdapter {
-        private ArrayList<BluetoothDevice> mLeDevices;
-        private LayoutInflater mInflator;
+        private final ArrayList<BluetoothDevice> mLeDevices;
+        private final LayoutInflater mInflator;
 
         public LeDeviceListAdapter() {
             super();
@@ -343,7 +350,7 @@ public class DeviceScanActivity extends ListActivity {
     /**
      * This is the callback for BLE scanning on versions prior to LOLLIPOP
      */
-    private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
+    private final BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
 
         @Override
         public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
@@ -360,7 +367,7 @@ public class DeviceScanActivity extends ListActivity {
     /**
      * This is the callback for BLE scanning for LOLLIPOP and later
      */
-    private ScanCallback mScanCallback = new ScanCallback() {
+    private final ScanCallback mScanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             mLeDeviceListAdapter.addDevice(result.getDevice());

@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ *
+ * This file was modified by Cypress Semiconductor Corporation in order to
+ * customize it for specific hardware used for training videos.
  */
 
 package com.cypress.academy.ble101_robot;
@@ -105,8 +109,8 @@ public class DeviceControlActivity extends Activity {
                     break;
                 case BleCar.ACTION_DATA_AVAILABLE:
                     // This is called after a Notify completes
-                    mTachLeftText.setText(String.format("%d", mBleCar.getTach(BleCar.MOTOR_LEFT)));
-                    mTachRightText.setText(String.format("%d", mBleCar.getTach(BleCar.MOTOR_RIGHT)));
+                    mTachLeftText.setText(String.format("%d", mBleCar.getTach(BleCar.Motor.LEFT)));
+                    mTachRightText.setText(String.format("%d", mBleCar.getTach(BleCar.Motor.RIGHT)));
                     break;
             }
         }
@@ -143,8 +147,8 @@ public class DeviceControlActivity extends Activity {
         mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
         mDeviceAddress = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
 
-        getActionBar().setTitle(mDeviceName);
-        getActionBar().setDisplayHomeAsUpEnabled(true);
+            getActionBar().setTitle(mDeviceName);
+            getActionBar().setDisplayHomeAsUpEnabled(true);
 
         // Bind to the BLE service
         Log.i(TAG, "Binding Service");
@@ -154,14 +158,14 @@ public class DeviceControlActivity extends Activity {
         /* This will be called when the left motor enable switch is changed */
         mEnableLeftSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                enableMotorSwitch(isChecked, BleCar.MOTOR_LEFT);
+                enableMotorSwitch(isChecked, BleCar.Motor.LEFT);
             }
         });
 
         /* This will be called when the right motor enable switch is changed */
         mEnableRightSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                enableMotorSwitch(isChecked, BleCar.MOTOR_RIGHT);
+                enableMotorSwitch(isChecked, BleCar.Motor.RIGHT);
             }
         });
 
@@ -176,7 +180,7 @@ public class DeviceControlActivity extends Activity {
             public void onProgressChanged(SeekBar seekBar, int speed, boolean fromUser) {
                 /* Scale the speed from what the seek bar provides to what the PSoC FW expects */
                 speed = scaleSpeed(speed);
-                mBleCar.setMotorSpeed(BleCar.MOTOR_LEFT, speed);
+                mBleCar.setMotorSpeed(BleCar.Motor.LEFT, speed);
                 Log.d(TAG, "Left Speed Change to:" + speed);
             }
         });
@@ -192,7 +196,7 @@ public class DeviceControlActivity extends Activity {
             public void onProgressChanged(SeekBar seekBar, int speed, boolean fromUser) {
                 /* Scale the speed from what the seek bar provides to what the PSoC FW expects */
                 speed = scaleSpeed(speed);
-                mBleCar.setMotorSpeed(BleCar.MOTOR_RIGHT, speed);
+                mBleCar.setMotorSpeed(BleCar.Motor.RIGHT, speed);
                 Log.d(TAG, "Right Speed Change to:" + speed);
              }
         });
@@ -270,19 +274,19 @@ public class DeviceControlActivity extends Activity {
      * @param isChecked used to enable/disable motor
      * @param motor is the motor to enable/disable (left or right)
      */
-    private void enableMotorSwitch(boolean isChecked, boolean motor) {
+    private void enableMotorSwitch(boolean isChecked, BleCar.Motor motor) {
         if (isChecked) { // Turn on the specified motor
             mBleCar.setMotorState(motor, true);
-            Log.d(TAG, (motor == BleCar.MOTOR_LEFT ? "Left" : "Right") + " Motor On");
+            Log.d(TAG, (motor == BleCar.Motor.LEFT ? "Left" : "Right") + " Motor On");
         } else { // turn off the specified motor
             mBleCar.setMotorState(motor, false);
             mBleCar.setMotorSpeed(motor, 0); // Force motor off
-            if(motor == BleCar.MOTOR_LEFT) {
+            if(motor == BleCar.Motor.LEFT) {
                 mSpeedLeftSeekBar.setProgress(10); // Move slider to middle position
             } else {
                 mSpeedRightSeekBar.setProgress(10); // Move slider to middle position
             }
-            Log.d(TAG, (motor == BleCar.MOTOR_LEFT ? "Left" : "Right") + " Motor Off");
+            Log.d(TAG, (motor == BleCar.Motor.LEFT ? "Left" : "Right") + " Motor Off");
         }
     }
  }

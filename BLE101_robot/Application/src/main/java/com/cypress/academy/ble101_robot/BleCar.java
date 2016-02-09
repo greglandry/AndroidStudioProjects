@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ *
+ * This file was modified by Cypress Semiconductor Corporation in order to
+ * customize it for specific hardware used for training videos.
  */
 
 package com.cypress.academy.ble101_robot;
@@ -42,8 +46,7 @@ public class BleCar extends Service {
 
     private final static String TAG = BleCar.class.getSimpleName();
 
-    public final static boolean MOTOR_LEFT =  true;
-    public final static boolean MOTOR_RIGHT = false;
+    public enum Motor { LEFT, RIGHT }
 
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
@@ -52,7 +55,7 @@ public class BleCar extends Service {
 
     //  Queue for BLE events
     //  This is needed so that rapid BLE events don't get dropped
-    private Queue<Object> BleQueue = new LinkedList<>();
+    private final Queue<Object> BleQueue = new LinkedList<>();
 
     /* UUID for the custom motor characteristics */
     private final static String motorServiceUUID = "00000000-0000-1000-8000-00805f9b34f0";
@@ -346,7 +349,7 @@ public class BleCar extends Service {
      * After using a given BLE device, the app must call this method to ensure resources are
      * released properly.
      */
-    public void close() {
+    private void close() {
         if (mBluetoothGatt == null) {
             return;
         }
@@ -355,14 +358,16 @@ public class BleCar extends Service {
     }
 
     /**
-     * Update the speed of the motor in the GATT database or turn off motor
+     * Update the speed of the motor in the GATT database or turn off motor. the speed
+     * value comes from the global variables motorLeftSpeed or motorRightSpeed which are
+     * set by the setMotorSpeed function.
      *
-     * @param Motor to write (L or R)
+     * @param motor to write (L or R)
      * @param state determines if motor is on or off
      */
-    private void updateGattSpeed(Boolean Motor, boolean state)
+    private void updateGattSpeed(Motor motor, boolean state)
     {
-        if(Motor == MOTOR_LEFT) {
+        if(motor == Motor.LEFT) {
             if (mSpeedLeftCharacteristic != null) {
                 if(state) {
                     mSpeedLeftCharacteristic.setValue(motorLeftSpeed, BluetoothGattCharacteristic.FORMAT_SINT8, 0);
@@ -440,19 +445,19 @@ public class BleCar extends Service {
     /**
      * Turn a motor on/off
      *
-     * @param Motor to operate on
+     * @param motor to operate on
      * @param state turn motor on or off
      */
-    public void setMotorState(boolean Motor, boolean state) {
+    public void setMotorState(Motor motor, boolean state) {
         // Update the motor state variable
-        if(Motor == MOTOR_LEFT)
+        if(motor == Motor.LEFT)
         {
             motorLeftState = state;
         } else { // Motor == RIGHT
             motorRightState = state;
         }
         // Update the Speed in the Gatt Database
-        updateGattSpeed(Motor, state);
+        updateGattSpeed(motor, state);
      }
 
     /**
@@ -461,12 +466,12 @@ public class BleCar extends Service {
      * be written into the GATT database unless the switch is
      * turned on.
      *
-     * @param Motor to operate on
+     * @param motor to operate on
      * @param speed to set the motor to
      */
-    public void setMotorSpeed(boolean Motor, int speed) {
-        boolean state = false;
-        if(Motor == MOTOR_LEFT)
+    public void setMotorSpeed(Motor motor, int speed) {
+        boolean state;
+        if(motor == Motor.LEFT)
         {
             motorLeftSpeed = speed;
             state = motorLeftState;
@@ -475,17 +480,17 @@ public class BleCar extends Service {
             state = motorRightState;
         }
         // Update the Speed in the Gatt Database
-        updateGattSpeed(Motor, state);
+        updateGattSpeed(motor, state);
     }
 
     /**
      * Get the tach reading for one of the motors
      *
-     * @param Motor to operate on
+     * @param motor to operate on
      * @return tach value
      */
-    public int getTach(boolean Motor) {
-        if (Motor == MOTOR_LEFT) {
+    public int getTach(Motor motor) {
+        if (motor == Motor.LEFT) {
             return motorLeftTach;
         } else { // Motor == RIGHT
             return motorRightTach;
