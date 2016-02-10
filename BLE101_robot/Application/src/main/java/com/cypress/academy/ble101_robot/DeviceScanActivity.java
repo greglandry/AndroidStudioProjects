@@ -247,7 +247,7 @@ public class DeviceScanActivity extends ListActivity {
             }, SCAN_PERIOD);
 
             mScanning = true;
-            UUID[] motorServiceArray = {BleCar.getMotorServiceUUID()};
+            UUID[] motorServiceArray = {PSoCBleCarService.getMotorServiceUUID()};
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
                 //noinspection deprecation
                 mBluetoothAdapter.startLeScan(motorServiceArray, mLeScanCallback);
@@ -260,7 +260,7 @@ public class DeviceScanActivity extends ListActivity {
                         .build();
                 filters = new ArrayList<>();
                 // We will scan just for the CAR's UUID
-                ParcelUuid PUuid = new ParcelUuid(BleCar.getMotorServiceUUID());
+                ParcelUuid PUuid = new ParcelUuid(PSoCBleCarService.getMotorServiceUUID());
                 ScanFilter filter = new ScanFilter.Builder().setServiceUuid(PUuid).build();
                 filters.add(filter);
                 mLEScanner.startScan(filters, settings, mScanCallback);

@@ -42,9 +42,9 @@ import java.util.UUID;
 /**
  * Service for managing connection and data communication with the BLE car
  */
-public class BleCar extends Service {
+public class PSoCBleCarService extends Service {
 
-    private final static String TAG = BleCar.class.getSimpleName();
+    private final static String TAG = PSoCBleCarService.class.getSimpleName();
 
     public enum Motor { LEFT, RIGHT }
 
@@ -57,7 +57,7 @@ public class BleCar extends Service {
     //  This is needed so that rapid BLE events don't get dropped
     private static final Queue<Object> BleQueue = new LinkedList<>();
 
-    /* UUID for the custom motor characteristics */
+    // UUID for the custom motor characteristics
     private static final String motorServiceUUID = "00000000-0000-1000-8000-00805f9b34f0";
     private static final String speedLeftCharUUID = "00000000-0000-1000-8000-00805f9b34f1";
     private static final String speedRightCharUUID = "00000000-0000-1000-8000-00805f9b34f2";
@@ -91,8 +91,8 @@ public class BleCar extends Service {
      * This is a binder for the BluetoothLeService
      */
     public class LocalBinder extends Binder {
-        BleCar getService() {
-            return BleCar.this;
+        PSoCBleCarService getService() {
+            return PSoCBleCarService.this;
         }
     }
 
@@ -490,6 +490,6 @@ public class BleCar extends Service {
      * @return the motor service UUID
      */
     public static UUID getMotorServiceUUID() {
-        return UUID.fromString(BleCar.motorServiceUUID);
+        return UUID.fromString(PSoCBleCarService.motorServiceUUID);
     }
  }

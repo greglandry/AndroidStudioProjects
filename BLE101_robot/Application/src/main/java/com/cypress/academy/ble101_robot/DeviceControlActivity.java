@@ -60,7 +60,7 @@ public class DeviceControlActivity extends Activity {
 
     private static String mDeviceName;
     private static String mDeviceAddress;
-    private static BleCar mBleCar;
+    private static PSoCBleCarService mPSoCBleCarService;
     private static boolean mConnected = false;
 
     /**
@@ -72,18 +72,18 @@ public class DeviceControlActivity extends Activity {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder service) {
             Log.i(TAG, "onServiceConnected");
-            mBleCar = ((BleCar.LocalBinder) service).getService();
-            if (!mBleCar.initialize()) {
+            mPSoCBleCarService = ((PSoCBleCarService.LocalBinder) service).getService();
+            if (!mPSoCBleCarService.initialize()) {
                 Log.e(TAG, "Unable to initialize Bluetooth");
                 finish();
             }
             // Automatically connects to the car database upon successful start-up initialization.
-            mBleCar.connect(mDeviceAddress);
+            mPSoCBleCarService.connect(mDeviceAddress);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
-            mBleCar = null;
+            mPSoCBleCarService = null;
         }
     };
 
@@ -99,18 +99,18 @@ public class DeviceControlActivity extends Activity {
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
             switch (action) {
-                case BleCar.ACTION_CONNECTED:
+                case PSoCBleCarService.ACTION_CONNECTED:
                     mConnected = true;
                     invalidateOptionsMenu();
                     break;
-                case BleCar.ACTION_DISCONNECTED:
+                case PSoCBleCarService.ACTION_DISCONNECTED:
                     mConnected = false;
                     invalidateOptionsMenu();
                     break;
-                case BleCar.ACTION_DATA_AVAILABLE:
+                case PSoCBleCarService.ACTION_DATA_AVAILABLE:
                     // This is called after a Notify completes
-                    mTachLeftText.setText(String.format("%d", BleCar.getTach(BleCar.Motor.LEFT)));
-                    mTachRightText.setText(String.format("%d", BleCar.getTach(BleCar.Motor.RIGHT)));
+                    mTachLeftText.setText(String.format("%d", PSoCBleCarService.getTach(PSoCBleCarService.Motor.LEFT)));
+                    mTachRightText.setText(String.format("%d", PSoCBleCarService.getTach(PSoCBleCarService.Motor.RIGHT)));
                     break;
             }
         }
@@ -124,9 +124,9 @@ public class DeviceControlActivity extends Activity {
      */
     private static IntentFilter makeCarUpdateIntentFilter() {
         final IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BleCar.ACTION_CONNECTED);
-        intentFilter.addAction(BleCar.ACTION_DISCONNECTED);
-        intentFilter.addAction(BleCar.ACTION_DATA_AVAILABLE);
+        intentFilter.addAction(PSoCBleCarService.ACTION_CONNECTED);
+        intentFilter.addAction(PSoCBleCarService.ACTION_DISCONNECTED);
+        intentFilter.addAction(PSoCBleCarService.ACTION_DATA_AVAILABLE);
         return intentFilter;
     }
 
@@ -152,20 +152,20 @@ public class DeviceControlActivity extends Activity {
 
         // Bind to the BLE service
         Log.i(TAG, "Binding Service");
-        Intent carServiceIntent = new Intent(this, BleCar.class);
+        Intent carServiceIntent = new Intent(this, PSoCBleCarService.class);
         bindService(carServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
 
         /* This will be called when the left motor enable switch is changed */
         mEnableLeftSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                enableMotorSwitch(isChecked, BleCar.Motor.LEFT);
+                enableMotorSwitch(isChecked, PSoCBleCarService.Motor.LEFT);
             }
         });
 
         /* This will be called when the right motor enable switch is changed */
         mEnableRightSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                enableMotorSwitch(isChecked, BleCar.Motor.RIGHT);
+                enableMotorSwitch(isChecked, PSoCBleCarService.Motor.RIGHT);
             }
         });
 
@@ -180,7 +180,7 @@ public class DeviceControlActivity extends Activity {
             public void onProgressChanged(SeekBar seekBar, int speed, boolean fromUser) {
                 /* Scale the speed from what the seek bar provides to what the PSoC FW expects */
                 speed = scaleSpeed(speed);
-                mBleCar.setMotorSpeed(BleCar.Motor.LEFT, speed);
+                mPSoCBleCarService.setMotorSpeed(PSoCBleCarService.Motor.LEFT, speed);
                 Log.d(TAG, "Left Speed Change to:" + speed);
             }
         });
@@ -196,7 +196,7 @@ public class DeviceControlActivity extends Activity {
             public void onProgressChanged(SeekBar seekBar, int speed, boolean fromUser) {
                 /* Scale the speed from what the seek bar provides to what the PSoC FW expects */
                 speed = scaleSpeed(speed);
-                mBleCar.setMotorSpeed(BleCar.Motor.RIGHT, speed);
+                mPSoCBleCarService.setMotorSpeed(PSoCBleCarService.Motor.RIGHT, speed);
                 Log.d(TAG, "Right Speed Change to:" + speed);
              }
         });
@@ -206,8 +206,8 @@ public class DeviceControlActivity extends Activity {
     protected void onResume() {
         super.onResume();
         registerReceiver(mCarUpdateReceiver, makeCarUpdateIntentFilter());
-        if (mBleCar != null) {
-            final boolean result = mBleCar.connect(mDeviceAddress);
+        if (mPSoCBleCarService != null) {
+            final boolean result = mPSoCBleCarService.connect(mDeviceAddress);
             Log.i(TAG, "Connect request result=" + result);
         }
     }
@@ -222,7 +222,7 @@ public class DeviceControlActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         unbindService(mServiceConnection);
-        mBleCar = null;
+        mPSoCBleCarService = null;
     }
 
     @Override
@@ -242,10 +242,10 @@ public class DeviceControlActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_connect:
-                mBleCar.connect(mDeviceAddress);
+                mPSoCBleCarService.connect(mDeviceAddress);
                 return true;
             case R.id.menu_disconnect:
-                mBleCar.disconnect();
+                mPSoCBleCarService.disconnect();
                 return true;
             case android.R.id.home:
                 onBackPressed();
@@ -274,19 +274,19 @@ public class DeviceControlActivity extends Activity {
      * @param isChecked used to enable/disable motor
      * @param motor is the motor to enable/disable (left or right)
      */
-    private void enableMotorSwitch(boolean isChecked, BleCar.Motor motor) {
+    private void enableMotorSwitch(boolean isChecked, PSoCBleCarService.Motor motor) {
         if (isChecked) { // Turn on the specified motor
-            mBleCar.setMotorState(motor, true);
-            Log.d(TAG, (motor == BleCar.Motor.LEFT ? "Left" : "Right") + " Motor On");
+            mPSoCBleCarService.setMotorState(motor, true);
+            Log.d(TAG, (motor == PSoCBleCarService.Motor.LEFT ? "Left" : "Right") + " Motor On");
         } else { // turn off the specified motor
-            mBleCar.setMotorState(motor, false);
-            mBleCar.setMotorSpeed(motor, 0); // Force motor off
-            if(motor == BleCar.Motor.LEFT) {
+            mPSoCBleCarService.setMotorState(motor, false);
+            mPSoCBleCarService.setMotorSpeed(motor, 0); // Force motor off
+            if(motor == PSoCBleCarService.Motor.LEFT) {
                 mSpeedLeftSeekBar.setProgress(10); // Move slider to middle position
             } else {
                 mSpeedRightSeekBar.setProgress(10); // Move slider to middle position
             }
-            Log.d(TAG, (motor == BleCar.Motor.LEFT ? "Left" : "Right") + " Motor Off");
+            Log.d(TAG, (motor == PSoCBleCarService.Motor.LEFT ? "Left" : "Right") + " Motor Off");
         }
     }
  }

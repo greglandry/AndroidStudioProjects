@@ -57,7 +57,7 @@
         <activity android:name="com.cypress.academy.ble101_robot.DeviceControlActivity" />
 
         <service
-            android:name="com.cypress.academy.ble101_robot.BleCar"
+            android:name="com.cypress.academy.ble101_robot.PSoCBleCarService"
             android:enabled="true" />
     </application>
 

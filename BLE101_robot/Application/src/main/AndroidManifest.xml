@@ -46,7 +46,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".DeviceControlActivity"/>
-        <service android:name=".BleCar" android:enabled="true"/>
+        <service android:name=".PSoCBleCarService" android:enabled="true"/>
     </application>
 
 </manifest>
