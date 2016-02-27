@@ -82,6 +82,9 @@ public class MainActivity extends AppCompatActivity {
     //This is required for Android 6.0 (Marshmallow)
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
 
+    // Keep track of whether CapSense Notifications are on or off
+    private static boolean CapSenseNotifyState = false;
+
     /**
      * This manages the lifecycle of the BLE service.
      * When the service starts we get the service object and initialize the service.
@@ -166,11 +169,17 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-         /* This will be called when the CapSense On/Off switch is touched */
+         /* This will be called when the CapSense Notify On/Off switch is touched */
         cap_switch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                  // Turn CapSense Notifications on/off based on the state of the switch
                 mPSoCCapSenseLedService.writeCapSenseNotification(isChecked);
+                CapSenseNotifyState = isChecked;  // Keep track of CapSense notification state
+                if(isChecked) { // Notifications are now on so text has to say "No Touch"
+                    mCapsenseValue.setText(R.string.NoTouch);
+                } else { // Notifications are now off so text has to say "Notify Off"
+                    mCapsenseValue.setText(R.string.NotifyOff);
+                }
             }
         });
     }
@@ -376,8 +385,12 @@ public class MainActivity extends AppCompatActivity {
                     // Get CapSense Slider Value
                     String CapSensePos = mPSoCCapSenseLedService.getCapSenseValue();
                     if (CapSensePos.equals("-1")) {  // No Touch returns 0xFFFF which is -1
-                        mCapsenseValue.setText(R.string.Question);
-                    } else {
+                        if(!CapSenseNotifyState) { // Notifications are off
+                            mCapsenseValue.setText(R.string.NotifyOff);
+                        } else { // Notifications are on but there is no finger on the slider
+                            mCapsenseValue.setText(R.string.NoTouch);
+                        }
+                    } else { // Valid CapSense value is returned
                         mCapsenseValue.setText(CapSensePos);
                     }
                 default:

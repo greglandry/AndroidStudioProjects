@@ -115,16 +115,16 @@ http://www.cypress.com/products/bluetooth-low-energy-ble
             android:layout_height="wrap_content"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
+            android:paddingTop="6dp"
             />
 
         <TextView
             android:id="@+id/capsense_value"
-            android:text="@string/Question"
+            android:text="@string/NotifyOff"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_toEndOf="@id/capsense_header"
-            android:paddingTop="12dp"
+            android:paddingTop="6dp"
             />
 
         <Switch
