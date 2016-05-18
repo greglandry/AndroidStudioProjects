@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">CyThermostat</string>
+    <string name="title_activity_control">ControlActivity</string>
+
+    <string name="no_ble">BLE not supported</string>
+
+    <!-- Misc items -->
+    <string name="zero">0</string>
+    <string name="celsius">\u2103</string>
+    <string name="up">UP</string>
+    <string name="down">DOWN</string>
+
+    <string name="refreshText">Pull Down to Refresh</string>
+
+</resources>
